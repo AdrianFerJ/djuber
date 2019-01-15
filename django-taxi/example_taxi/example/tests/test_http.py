@@ -3,6 +3,10 @@ from rest_framework import status
 from rest_framework.reverse import reverse
 from rest_framework.test import APIClient, APITestCase
 
+from example.serializers import TripSerializer, UserSerializer
+from example.models import Trip 
+
+# Default test
 PASSWORD = 'pAssw0rd!'
 
 
@@ -11,6 +15,9 @@ def create_user(username='user@example.com', password=PASSWORD):
         username=username, password=password)
 
 class AuthenticationTest(APITestCase):
+    """ 
+    Tests functionality related to user sign up, sign in, and sign out
+    """
 
     def setUp(self):
         self.client = APIClient()
@@ -44,3 +51,24 @@ class AuthenticationTest(APITestCase):
         self.client.login(username=user.username, password=PASSWORD)
         response = self.client.post(reverse('log_out'))
         self.assertEqual(status.HTTP_204_NO_CONTENT, response.status_code)
+
+
+class HttpTripTest(APITestCase):
+    """ 
+    Tests whether user can login and see information about previous, current, and future trips
+    """
+    def setUp(self):
+        user = create_user()
+        self.client = APIClient()
+        self.client.login(username=user.username, password=PASSWORD)
+
+    def test_user_can_list_trips(self):
+        trips = [
+            Trip.objects.create(pick_up_address='A', drop_off_address='B'),
+            Trip.objects.create(pick_up_address='B', drop_off_address='C')
+        ]
+        response = self.client.get(reverse('trip:trip_list'))
+        self.assertEqual(status.HTTP_200_OK, response.status_code)
+        exp_trip_nks = [trip.nk for trip in trips]
+        act_trip_nks = [trip.get('nk') for trip in response.data]
+        self.assertCountEqual(exp_trip_nks, act_trip_nks)

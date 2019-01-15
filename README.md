@@ -4,7 +4,7 @@ Based on Michael Herman's tutorial, at [testdriven.io](https://testdriven.io/cou
 ## SETUP
 
 ### 1. Set Up env
-```
+```bash
 # install pipenv
 $ pipenv --python 3.7  # or path/to/python ... like the python used in django-docker pipenv
 
@@ -32,7 +32,7 @@ $ pip install \
 For more info about Redis setup, check the [docs](https://redis.io/topics/quickstart)
 
 **IF not installed:**
-```
+```bash
 # install Redis
 $ wget http://download.redis.io/redis-stable.tar.gz
 $ tar xvzf redis-stable.tar.gz
@@ -44,11 +44,19 @@ $ sudo cp src/redis-server /usr/local/bin/
 $ sudo cp src/redis-cli /usr/local/bin/
 ```
 Test server
-```
+```bash
 # run server, on new terminal
 $ redis-server
 
 # ping server, back on previous terminal
 $ redis-cli ping
 Pong
+```
+
+## Dev process
+
+### Use tags for versioning
+```bash
+# example: 
+$ git tag -a v1.5 -m "Part 1 chapter 5"
 ```
