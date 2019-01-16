@@ -14,6 +14,12 @@ class TaxiConsumer(AsyncJsonWebsocketConsumer):
         if user.is_anonymous:
             await self.close()
         else:
+            # Get trips and add rider to each one's group.
+            channel_groups = []
+            self.trips = set(await self._get_trips(self.scope['user']))
+            for trip in self.trips:
+                channel_groups.append(self.channel_layer.group_add(trip, self.channel_name))
+            asyncio.gather(*channel_groups)
             await self.accept()
     
     async def receive_json(self, content, **kwargs):
@@ -27,16 +33,17 @@ class TaxiConsumer(AsyncJsonWebsocketConsumer):
 
     async def create_trip(self, event):
         trip = await self._create_trip(event.get('data'))
-        trip_data = ReadOnlyTripSerializer(trip).data
-
-        # Add trip to set.
-        self.trips.add(trip.nk)
-
-        # Add this channel to the new trip's group.
-        await self.channel_layer.group_add(
-            group=trip.nk,
-            channel=self.channel_name
-        )
+        trip_data = ReadOnlyTripSerializer(trip).data   
+    
+        # Handle add only if trip is not being tracked.
+        if trip.nk not in self.trips:
+            # Add trip to set.
+            self.trips.add(trip.nk)
+            # Add this channel to the new trip's group.
+            await self.channel_layer.group_add(
+                group=trip.nk,
+                channel=self.channel_name
+            )
 
         await self.send_json({
             'type': 'MESSAGE',

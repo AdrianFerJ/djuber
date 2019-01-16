@@ -74,6 +74,10 @@ async def connect_and_create_trip(
     })
     return communicator
 
+@database_sync_to_async
+def create_trip(**kwargs):
+    return Trip.objects.create(**kwargs)
+
 """
 Test classes go here
 """
@@ -153,6 +157,40 @@ class TestWebsockets:
         response = await communicator.receive_json_from()
 
         # Confirm data.
+        assert_equal(message, response)
+
+        await communicator.disconnect()
+
+    async def test_rider_is_added_to_trip_groups_on_connect(self, settings):
+        settings.CHANNEL_LAYERS = TEST_CHANNEL_LAYERS
+
+        user = await create_user(
+            username='rider3@example.com',
+            group='rider'
+        )
+
+        # Create trips and link to rider.
+        trip = await create_trip(
+            pick_up_address='A',
+            drop_off_address='B',
+            rider=user
+        )
+
+        # Connect to server.
+        # Trips for rider should be retrieved.
+        # Rider should be added to trips' groups.
+        communicator = await auth_connect(user)
+
+        message = {
+            'type': 'echo.message',
+            'data': 'This is a test message.'
+        }
+
+        channel_layer = get_channel_layer()
+
+        # Test sending JSON message to trip group.
+        await channel_layer.group_send(trip.nk, message=message)
+        response = await communicator.receive_json_from()
         assert_equal(message, response)
 
         await communicator.disconnect()
