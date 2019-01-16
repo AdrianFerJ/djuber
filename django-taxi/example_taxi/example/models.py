@@ -58,8 +58,8 @@ class Trip(models.Model):
             now = datetime.datetime.now()
             secure_hash = hashlib.md5()
             secure_hash.update(
-                f'{now}:{self.pick_up_address}:{self.drop_off_address}'.encode(
-                    'utf-8'))
+                f'{now}:{self.pick_up_address}:{self.drop_off_address}'.encode('utf-8')
+            )
             self.nk = secure_hash.hexdigest()
         super().save(**kwargs)
 
