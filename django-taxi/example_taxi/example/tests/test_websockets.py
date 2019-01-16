@@ -78,6 +78,21 @@ async def connect_and_create_trip(
 def create_trip(**kwargs):
     return Trip.objects.create(**kwargs)
 
+async def connect_and_update_trip(*, user, trip, status):
+    communicator = await auth_connect(user)
+    await communicator.send_json_to({
+        'type': 'update.trip',
+        'data': {
+            'id': trip.id,
+            'nk': trip.nk,
+            'pick_up_address': trip.pick_up_address,
+            'drop_off_address': trip.drop_off_address,
+            'status': status,
+            'driver': user.id,
+        }
+    })
+    return communicator
+
 """
 Test classes go here
 """
@@ -192,5 +207,39 @@ class TestWebsockets:
         await channel_layer.group_send(trip.nk, message=message)
         response = await communicator.receive_json_from()
         assert_equal(message, response)
+
+        await communicator.disconnect()
+
+    async def test_driver_can_update_trips(self, settings):
+        settings.CHANNEL_LAYERS = TEST_CHANNEL_LAYERS
+
+        trip = await create_trip(
+            pick_up_address='A',
+            drop_off_address='B'
+        )
+        user = await create_user(
+            username='driver@example.com',
+            group='driver'
+        )
+
+        # Send JSON message to server.
+        communicator = await connect_and_update_trip(
+            user=user,
+            trip=trip,
+            status=Trip.IN_PROGRESS
+        )
+
+        # Receive JSON message from server.
+        response = await communicator.receive_json_from()
+        data = response.get('data')
+
+        # Confirm data.
+        assert_equal(trip.id, data['id'])
+        assert_equal(trip.nk, data['nk'])
+        assert_equal('A', data['pick_up_address'])
+        assert_equal('B', data['drop_off_address'])
+        assert_equal(Trip.IN_PROGRESS, data['status'])
+        assert_equal(user.username, data['driver'].get('username'))
+        assert_equal(None, data['rider'])
 
         await communicator.disconnect()
