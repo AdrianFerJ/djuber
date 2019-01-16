@@ -35,6 +35,8 @@ class LogOutView(views.APIView):
 
 class TripView(viewsets.ReadOnlyModelViewSet):
     """ Basic trip view, returns all trips of the user making the request"""
+    lookup_field = 'nk'
+    lookup_url_kwarg = 'trip_nk'
     permission_classes = (permissions.IsAuthenticated,)
     queryset = Trip.objects.all()
     serializer_class = TripSerializer
