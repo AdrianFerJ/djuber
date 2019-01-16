@@ -118,3 +118,41 @@ class TestWebsockets:
         assert_equal(user.username, data['rider'].get('username'))
 
         await communicator.disconnect()
+    
+    async def test_rider_is_added_to_trip_group_on_create(self, settings):
+        """
+        Test that is added to a group to receive updates about trip, after creating it
+        - Sends message to group via group_send() 
+        """
+        settings.CHANNEL_LAYERS = TEST_CHANNEL_LAYERS
+
+        user = await create_user(
+            username='rider@example.com',
+            group='rider'
+        )
+
+        # Connect and send JSON message to server.
+        communicator = await connect_and_create_trip(user=user)
+
+        # Receive JSON message from server.
+        # Rider should be added to new trip's group.
+        response = await communicator.receive_json_from()
+        data = response.get('data')
+
+        trip_nk = data['nk']
+        message = {
+            'type': 'echo.message',
+            'data': 'This is a test message.'
+        }
+
+        # Send JSON message to new trip's group.
+        channel_layer = get_channel_layer()
+        await channel_layer.group_send(trip_nk, message=message)
+
+        # Receive JSON message from server.
+        response = await communicator.receive_json_from()
+
+        # Confirm data.
+        assert_equal(message, response)
+
+        await communicator.disconnect()
