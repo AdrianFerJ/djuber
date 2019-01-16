@@ -243,3 +243,83 @@ class TestWebsockets:
         assert_equal(None, data['rider'])
 
         await communicator.disconnect()
+    
+
+
+    async def test_driver_is_added_to_trip_group_on_update(self, settings):
+        settings.CHANNEL_LAYERS = TEST_CHANNEL_LAYERS
+
+        trip = await create_trip(
+            pick_up_address='A',
+            drop_off_address='B'
+        )
+        user = await create_user(
+            username='driver@example.com',
+            group='driver'
+        )
+
+        # Send JSON message to server.
+        communicator = await connect_and_update_trip(
+            user=user,
+            trip=trip,
+            status=Trip.IN_PROGRESS
+        )
+
+        # Receive JSON message from server.
+        response = await communicator.receive_json_from()
+        data = response.get('data')
+
+        trip_nk = data['nk']
+        message = {
+            'type': 'echo.message',
+            'data': 'This is a test message.'
+        }
+
+        # Send JSON message to trip's group.
+        channel_layer = get_channel_layer()
+        await channel_layer.group_send(trip_nk, message=message)
+
+        # Receive JSON message from server.
+        response = await communicator.receive_json_from()
+
+        # Confirm data.
+        assert_equal(message, response)
+
+        await communicator.disconnect()
+
+    async def test_rider_is_alerted_on_trip_update(self, settings):
+        settings.CHANNEL_LAYERS = TEST_CHANNEL_LAYERS
+
+        trip = await create_trip(
+            pick_up_address='A',
+            drop_off_address='B'
+        )
+
+        # Listen to the trip group test channel.
+        channel_layer = get_channel_layer()
+        await channel_layer.group_add(
+            group=trip.nk,
+            channel='test_channel'
+        )
+
+        user = await create_user(
+            username='driver@example.com',
+            group='driver'
+        )
+
+        # Send JSON message to server.
+        communicator = await connect_and_update_trip(
+            user=user,
+            trip=trip,
+            status=Trip.IN_PROGRESS
+        )
+
+        # Receive JSON message from server on test channel.
+        response = await channel_layer.receive('test_channel')
+        data = response.get('data')
+
+        # Confirm data.
+        assert_equal(trip.nk, data['nk'])
+        assert_equal(user.username, data['driver'].get('username'))
+
+        await communicator.disconnect()
