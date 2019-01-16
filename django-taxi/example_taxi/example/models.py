@@ -1,9 +1,11 @@
-import datetime # new
-import hashlib # new
+import datetime   
+import hashlib   
 
-from django.db import models # new
-from django.shortcuts import reverse # new
+from django.db import models   
+from django.shortcuts import reverse   
 from django.contrib.auth.models import AbstractUser
+from django.conf import settings
+
 
 
 class User(AbstractUser):
@@ -30,6 +32,21 @@ class Trip(models.Model):
     status = models.CharField(
         max_length=20, choices=STATUSES, default=REQUESTED)
 
+    driver = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.DO_NOTHING,
+        related_name='trips_as_driver'
+    )
+    rider = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.DO_NOTHING,
+        related_name='trips_as_rider'
+    )
+
     def __str__(self):
         return self.nk
 
@@ -45,3 +62,5 @@ class Trip(models.Model):
                     'utf-8'))
             self.nk = secure_hash.hexdigest()
         super().save(**kwargs)
+
+   

@@ -69,3 +69,36 @@ class TestWebsockets:
         communicator = await auth_connect(user)
         await communicator.disconnect()
 
+    async def test_rider_can_create_trips(self, settings): # new
+        settings.CHANNEL_LAYERS = TEST_CHANNEL_LAYERS
+
+        user = await create_user(
+            username='rider@example.com',
+            group='rider'
+        )
+        communicator = await auth_connect(user)
+
+        # Send JSON message to server.
+        await communicator.send_json_to({
+            'type': 'create.trip',
+            'data': {
+                'pick_up_address': 'A',
+                'drop_off_address': 'B',
+                'rider': user.id,
+            }
+        })
+
+        # Receive JSON message from server.
+        response = await communicator.receive_json_from()
+        data = response.get('data')
+
+        # Confirm data.
+        assert_is_not_none(data['id'])
+        assert_is_not_none(data['nk'])
+        assert_equal('A', data['pick_up_address'])
+        assert_equal('B', data['drop_off_address'])
+        assert_equal(Trip.REQUESTED, data['status'])
+        assert_is_none(data['driver'])
+        assert_equal(user.username, data['rider'].get('username'))
+
+        await communicator.disconnect()

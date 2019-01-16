@@ -34,3 +34,12 @@ class TripSerializer(serializers.ModelSerializer):
         model = Trip
         fields = '__all__'
         read_only_fields = ('id', 'nk', 'created', 'updated',)
+
+class ReadOnlyTripSerializer(serializers.ModelSerializer):
+    """ Serializer used to safely return full Trip info to user, can't modify fields (readOnly)"""
+    driver = UserSerializer()
+    rider = UserSerializer()
+
+    class Meta:
+        model = Trip
+        fields = '__all__'
