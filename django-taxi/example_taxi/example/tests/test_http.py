@@ -1,3 +1,6 @@
+from io import BytesIO
+from PIL import Image
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 
@@ -8,9 +11,13 @@ from rest_framework.test import APIClient, APITestCase
 from example.serializers import TripSerializer, UserSerializer
 from example.models import Trip 
 
+
 # Default test
 PASSWORD = 'pAssw0rd!'
 
+"""
+Helper functions go here
+"""
 
 def create_user(username='user@example.com', password=PASSWORD, group_name='rider'):
     group, _ = Group.objects.get_or_create(name=group_name)
@@ -19,6 +26,18 @@ def create_user(username='user@example.com', password=PASSWORD, group_name='ride
     user.groups.add(group)
     user.save()
     return user
+
+def create_photo_file():
+    """Creates create fake image data"""
+    data = BytesIO()
+    Image.new('RGB', (100, 100)).save(data, 'PNG')
+    data.seek(0)
+    return SimpleUploadedFile('photo.png', data.getvalue())
+
+
+"""
+Test classes go here
+"""
 
 class AuthenticationTest(APITestCase):
     """ 
@@ -29,6 +48,7 @@ class AuthenticationTest(APITestCase):
         self.client = APIClient()
 
     def test_user_can_sign_up(self):
+        photo_file = create_photo_file()
         response = self.client.post(reverse('sign_up'), data={
             'username': 'user@example.com',
             'first_name': 'Test',
@@ -36,6 +56,7 @@ class AuthenticationTest(APITestCase):
             'password1': PASSWORD,
             'password2': PASSWORD,
             'group': 'rider',
+            'photo': photo_file,
         })
         user = get_user_model().objects.last()
         self.assertEqual(status.HTTP_201_CREATED, response.status_code)
@@ -43,6 +64,8 @@ class AuthenticationTest(APITestCase):
         self.assertEqual(response.data['username'], user.username)
         self.assertEqual(response.data['first_name'], user.first_name)
         self.assertEqual(response.data['last_name'], user.last_name)
+        self.assertEqual(response.data['group'], user.group)
+        self.assertIsNotNone(user.photo)
     
     def test_user_can_log_in(self): 
         user = create_user()
@@ -52,7 +75,7 @@ class AuthenticationTest(APITestCase):
         })
         self.assertEqual(status.HTTP_200_OK, response.status_code)
         self.assertEqual(response.data['username'], user.username)
-
+    
     def test_user_can_log_out(self):
         user = create_user()
         self.client.login(username=user.username, password=PASSWORD)
