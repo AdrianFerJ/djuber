@@ -3,7 +3,7 @@ Based on Michael Herman's tutorial, at [testdriven.io](https://testdriven.io/cou
 
 ## SETUP
 
-### 1. Set Up env
+### 1. Set Up Python (venv) and Django 
 ```bash
 # install pipenv
 $ pipenv --python 3.7  # or path/to/python ... like the python used in django-docker pipenv
@@ -53,10 +53,44 @@ $ redis-cli ping
 Pong
 ```
 
-## Dev process
+### 3. Set Angular
+Requirements npm and node
+```bash
+#If npm and node.js aren't installed, do that first:
+$ sudo snap install node --channel=10/stable --classic
+```
+
+Install Angular CLI
+```bash
+# install
+$ npm install -g @angular/cli@6.1.4
+
+# check version
+$ ng v
+```
+
+Initialize Angular project (from ../taxi-app~)
+```bash
+$ ng new taxi-ui
+$ cd taxi-ui
+$ ng serve
+# this should take you to Angular's default welcome page
+```
+
+If you were taken to the welcome page (http://localhost:4200), Kill server and install packages
+```bash
+# *NOTE: Could remove package versions to have the latest
+$ npm install \
+  bootstrap@4.1.3 \
+  jquery@3.3.1 \
+  popper.js@1.14.4 \
+  bootswatch@4.1.3 --save
+```
+Finally, add css and scripts to angular.json 
 
 ### Use tags for versioning
 ```bash
 # example: 
 $ git tag -a v1.5 -m "Part 1 chapter 5"
 ```
+
