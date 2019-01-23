@@ -1,0 +1,20 @@
+version: '3.7'
+
+services:
+  redis:
+    container_name: redis
+    image: redis:4.0.11
+
+  taxi-server:
+    container_name: taxi-server
+    build:
+      context: ./django-taxi
+      dockerfile: Dockerfile
+    ports:
+      - 8000:8000
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - redis
+    links:
+      - redis
